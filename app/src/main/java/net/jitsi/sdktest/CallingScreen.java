@@ -6,13 +6,20 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import android.app.KeyguardManager;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.drawable.AnimationDrawable;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PowerManager;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -130,10 +137,57 @@ public class CallingScreen extends AppCompatActivity {
 
         setContentView(R.layout.activity_calling_screen);
 
+        NotificationManager nMgr = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        nMgr.cancel(1002);
+
+//        String sessionId = getIntent().getStringExtra("EXTRA_SESSION_ID");
+//        Log.d("SESSION_ID",sessionId);
+//        doctorId  = sessionId;
+//        roomId = sessionId;
+
+
+//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON|
+//                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD|
+//                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED|
+//                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+
+
+//        Window window = getWindow();
+//        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN|WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED| WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON| WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
+                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
+                        WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON);
+
+        // to wake up screen
+        PowerManager pm = (PowerManager) getApplicationContext().getSystemService(Context.POWER_SERVICE);
+        @SuppressLint("InvalidWakeLockTag") PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "TAG");
+        wakeLock.acquire();
+
+
+
+        // to release screen lock
+        KeyguardManager keyguardManager = (KeyguardManager) getApplicationContext().getSystemService(Context.KEYGUARD_SERVICE);
+        KeyguardManager.KeyguardLock keyguardLock = keyguardManager.newKeyguardLock("TAG");
+        keyguardLock.disableKeyguard();
+
+        Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+        Ringtone ringtoneSound = RingtoneManager.getRingtone(getApplicationContext(), ringtoneUri);
+        //System.out.println("Main | Play.onClick | ringtone:" +ringtoneSound);
+
+
+        if (ringtoneSound != null) {
+            ringtoneSound.play();
+            Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            vib.vibrate(500);
+        }
+
         call_received = (Button) findViewById(R.id.call_received);
         call_end = (Button) findViewById(R.id.call_end);
-        call_received.setBackgroundResource(R.drawable.call_received_animation_);
-        callReceivedAnimation = (AnimationDrawable) call_received.getBackground();
+//        call_received.setBackgroundResource(R.drawable.call_received_animation_);
+//        callReceivedAnimation = (AnimationDrawable) call_received.getBackground();
 
 //        String call_details = getIntent().getStringExtra("CALL_DETAILS");
 
@@ -145,14 +199,24 @@ public class CallingScreen extends AppCompatActivity {
         call_received.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (ringtoneSound != null) {
+                    ringtoneSound.stop();
+                }
+
                 receiveCall();
+//                finish();
             }
         });
 
         call_end.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (ringtoneSound != null) {
+                    ringtoneSound.stop();
+                }
+
                 rejectCall();
+                finish();
             }
         });
 
@@ -176,7 +240,7 @@ public class CallingScreen extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        callReceivedAnimation.start();
+//        callReceivedAnimation.start();
     }
 
 
