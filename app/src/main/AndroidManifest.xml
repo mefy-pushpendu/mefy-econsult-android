@@ -5,18 +5,20 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
-    <uses-permission android:name="android.permission.USE_SIP"/>
+    <uses-permission android:name="android.permission.USE_SIP" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <!--
- Needed only if your calling app reads numbers from the `PHONE_STATE`
-         intent action.
-    -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-
-
     <!--
  Set custom default icon. This is used when no icon is set for incoming notification messages.
      See README(https://goo.gl/l4GJaQ) for more.
@@ -31,10 +33,11 @@
     <meta-data
         android:name="com.google.firebase.messaging.default_notification_color"
         android:resource="@color/colorAccent" />
-    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="@string/default_notification_channel_id"/>
+    <meta-data
+        android:name="com.google.firebase.messaging.default_notification_channel_id"
+        android:value="@string/default_notification_channel_id" />
 
     <uses-feature android:name="android.hardware.sip.voip" />
-
 
     <application
         android:name=".app"
@@ -44,11 +47,25 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".TwilioVideo"></activity>
+        <activity
+            android:name=".MyJitsiMeet"
+            android:label="@string/title_activity_my_jitsi_meet"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".VideoCall"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <receiver android:name=".ActionReceiver" />
+        <receiver android:name=".RejectReceiver" />
+
         <activity
             android:name=".CallingScreen"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_calling_screen"
-            android:theme="@style/FullscreenTheme"></activity>
+            android:autoRemoveFromRecents="true" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

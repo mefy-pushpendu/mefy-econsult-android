@@ -89,3 +89,7 @@
 
 # This app
 -keep class net.jitsi.sdktest.** { *; }
+
+-keep class tvi.webrtc.** { *; }
+-keep class com.twilio.video.** { *; }
+-keepattributes InnerClasses

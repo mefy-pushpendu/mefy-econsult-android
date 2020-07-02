@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.app.KeyguardManager;
@@ -13,6 +15,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.drawable.AnimationDrawable;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -34,6 +38,7 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.jitsi.meet.sdk.JitsiMeetActivity;
+import org.jitsi.meet.sdk.JitsiMeetActivityInterface;
 import org.jitsi.meet.sdk.JitsiMeetConferenceOptions;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -137,6 +142,7 @@ public class CallingScreen extends AppCompatActivity {
 
         setContentView(R.layout.activity_calling_screen);
 
+
         NotificationManager nMgr = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
         nMgr.cancel(1002);
 
@@ -173,13 +179,23 @@ public class CallingScreen extends AppCompatActivity {
         KeyguardManager.KeyguardLock keyguardLock = keyguardManager.newKeyguardLock("TAG");
         keyguardLock.disableKeyguard();
 
-        Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-        Ringtone ringtoneSound = RingtoneManager.getRingtone(getApplicationContext(), ringtoneUri);
-        //System.out.println("Main | Play.onClick | ringtone:" +ringtoneSound);
+        Uri alert =  RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+        MediaPlayer mMediaPlayer = new MediaPlayer();
+        try {
+        mMediaPlayer.setDataSource(this, alert);
+        final AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager.getStreamVolume(AudioManager.STREAM_RING) != 0) {
+            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_RING);
+            mMediaPlayer.setLooping(true);
+            mMediaPlayer.prepare();
+
+        }
+    } catch(Exception e) {
+    }
 
 
-        if (ringtoneSound != null) {
-            ringtoneSound.play();
+        if (alert != null) {
+            mMediaPlayer.start();
             Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             vib.vibrate(500);
         }
@@ -199,8 +215,8 @@ public class CallingScreen extends AppCompatActivity {
         call_received.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (ringtoneSound != null) {
-                    ringtoneSound.stop();
+                if (alert != null) {
+                    mMediaPlayer.stop();
                 }
 
                 receiveCall();
@@ -211,8 +227,8 @@ public class CallingScreen extends AppCompatActivity {
         call_end.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (ringtoneSound != null) {
-                    ringtoneSound.stop();
+                if (alert != null) {
+                    mMediaPlayer.stop();
                 }
 
                 rejectCall();
@@ -452,7 +468,19 @@ public class CallingScreen extends AppCompatActivity {
                 = new JitsiMeetConferenceOptions.Builder()
                 .setRoom(roomId)
                 .build();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "Default")
+                .setSmallIcon(R.drawable.call_received)
+                .setContentTitle("Mefy Care")
+                .setContentText("Unlock the Screen to join the call")
+                .setTimeoutAfter(3000)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         JitsiMeetActivity.launch(CallingScreen.this, options);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+// notificationId is a unique int for each notification that you must define
+        notificationManager.notify(4321, builder.build());
+        finish();
+//        JitsiMeetActivity.join(serverURL.toString());
     }
 
     @Override

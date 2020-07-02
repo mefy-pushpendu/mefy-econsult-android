@@ -17,6 +17,7 @@
 package net.jitsi.sdktest;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.app.KeyguardManager;
@@ -30,6 +31,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Location;
+import android.media.AudioAttributes;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -39,6 +41,7 @@ import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -118,33 +121,32 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 Object msg = data.get("msg");
                 JSONObject caller = new JSONObject(data.get("caller").toString());
                 String callerId = caller.getString("_id");
-                Log.d("msg",callerId);
+                Log.d("msg",msg.toString());
                 if (msg.toString().equals("CALL_MADE")) {
-//                    Intent dialogIntent = new Intent(context, CallingScreen.class);
-//                    dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//                    startActivity(dialogIntent);
-//                    sendMessageToActivity(context, remoteMessage.getData().toString());
 
-
-//                    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
-//                            .setSmallIcon(R.mipmap.ic_launcher)
-//                            .setContentTitle("Mefy Care")
-//                            .setDefaults(Notification.DEFAULT_ALL)
-//                            .setPriority(Notification.PRIORITY_HIGH)
-//                            .setContentText("Dr. Pushpendu is calling").setAutoCancel(true).setContentIntent(pendingIntent);
-//                    ;
-//                    NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                        NotificationChannel channel = new NotificationChannel(channelId, "Default channel", NotificationManager.IMPORTANCE_DEFAULT);
-//                        manager.createNotificationChannel(channel);
-//                    }
-//                    manager.notify(0, builder.build());
                     getIndividual(callerId);
+
+//                    KeyguardManager myKM = (KeyguardManager) getApplicationCntx().getSystemService(Context.KEYGUARD_SERVICE);
+//                    if( myKM.inKeyguardRestrictedInputMode() ) {
+//                        // it is locked
+//                        getIndividual(callerId);
+//                    } else {
+//                        //it is not locked
+//                        Intent dialogIntent = new Intent(context, CallingScreen.class);
+//                        dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+////                        dialogIntent.addCategory(Intent.CATEGORY_VOICE);
+////                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//                        getApplicationCntx().startActivity(dialogIntent);
+//                        sendMessageToActivity(context, remoteMessage.getData().toString());
+//                    }
 
                 }else if(msg.toString().equals("CALL_REJECTED")){
                     sendMessageToMainActivity(context,remoteMessage.getData().toString());
                 }else if(msg.toString().equals("CALL_ACCEPTED")){
                     sendMessageToMainActivity(context,remoteMessage.getData().toString());
+                }else if(msg.toString().equals("CALL_DISCONNECTED")){
+                    Log.d("In Logic",msg.toString());
+                    sendMessageToActivity(context,"disconnected");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -182,18 +184,18 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         Intent intent = new Intent("NotificationIntent");
         // You can also include some extra data.
         intent.putExtra("message", msg);
+        Log.d("In Intent",msg.toString());
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 
     }
 
     private NotificationManager notifManager;
-    public void createNotification(String aMessage,String picture,String doctorID) {
+    @SuppressLint("WrongConstant")
+    public void createNotification(String aMessage, String picture, String doctorID) {
         final int NOTIFY_ID = 1002;
-        KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
-        Boolean isLocked = keyguardManager.isDeviceLocked();
-        if(isLocked){
-            aMessage+=".Please unlock device";
-        }
+
+        aMessage+=".Tap to receive call";
+
 
         // There are hardcoding only for show it's just strings
         String name = "my_package_channel";
@@ -212,31 +214,36 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel mChannel = notifManager.getNotificationChannel(id);
+            Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
             if (mChannel == null) {
                 mChannel = new NotificationChannel(id, name, importance);
                 mChannel.setDescription(description);
                 mChannel.enableVibration(true);
+                mChannel.setSound(ringtoneUri, new AudioAttributes.Builder()
+                        // Setting the AudioAttributes is important as it identifies the purpose of your
+                        // notification sound.
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build());
                 mChannel.setLightColor(Color.GREEN);
                 mChannel.setVibrationPattern(new long[]{1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000});
                 notifManager.createNotificationChannel(mChannel);
             }
             builder = new NotificationCompat.Builder(this, id);
 
-            intent = new Intent(this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
-
-            Intent receiveCallAction = new Intent(getApplicationCntx(), MainActivity.class);
-            receiveCallAction.putExtra("message", aMessage);
-            receiveCallAction.setAction("RECEIVE_CALL");
-
-            Intent cancelCallAction = new Intent(getApplicationCntx(), MainActivity.class);
-            cancelCallAction.putExtra("message", aMessage);
-            cancelCallAction.setAction("CANCEL_CALL");
-
-            PendingIntent receiveCallPendingIntent = PendingIntent.getBroadcast(getApplicationCntx(), 1200, receiveCallAction, PendingIntent.FLAG_UPDATE_CURRENT);
-            PendingIntent cancelCallPendingIntent = PendingIntent.getBroadcast(getApplicationCntx(), 1201, cancelCallAction, PendingIntent.FLAG_UPDATE_CURRENT);
+//            Intent receiveCallPendingIntent = new Intent(getApplicationCntx(),ActionReceiver.class);
+//            receiveCallPendingIntent.putExtra("action","accepted");
+//            receiveCallPendingIntent.putExtra("doctorID",doctorID);
+//            receiveCallPendingIntent.putExtra("notifyID",NOTIFY_ID);
+//
+//            Intent rejectCallPendingIntent = new Intent(getApplicationCntx(),RejectReceiver.class);
+//            rejectCallPendingIntent.putExtra("action","rejected");
+//            rejectCallPendingIntent.putExtra("doctorID",doctorID);
+//            rejectCallPendingIntent.putExtra("notifyID",NOTIFY_ID);
+//
+//            PendingIntent rcvCallPendingIntent = PendingIntent.getBroadcast(context,1,receiveCallPendingIntent,PendingIntent.FLAG_UPDATE_CURRENT);
+//            PendingIntent rejCallPendingIntent = PendingIntent.getBroadcast(context,1,rejectCallPendingIntent,PendingIntent.FLAG_UPDATE_CURRENT);
 
 //            try {
 //                URL url = new URL(picture);
@@ -245,39 +252,45 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 //                System.out.println(e);
 //            }
 
+
+
+            Intent fullscreenintent = new Intent(Intent.ACTION_MAIN, null);
+            fullscreenintent.putExtra("doctorID",doctorID);
+            fullscreenintent.setFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            fullscreenintent.setClass(context, CallingScreen.class);
+            PendingIntent fullscreenpendingintent = PendingIntent.getActivity(context, 1, fullscreenintent, 0);
+            Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+
             builder.setContentTitle(aMessage)  // required
                     .setSmallIcon(android.R.drawable.ic_popup_reminder) // required
                     .setContentText(this.getString(R.string.app_name))  // required
-                    .setDefaults(Notification.DEFAULT_ALL)
                     .setAutoCancel(true)
-                    .setContentIntent(receiveCallPendingIntent)
-                    .setTicker(aMessage)
-                    .addAction(R.drawable.call_received, "Receive Call", receiveCallPendingIntent)
-                    .addAction(R.drawable.call_end_button, "Cancel call", cancelCallPendingIntent)
-//                    .setLargeIcon()
-                    .setAutoCancel(true)
-                    .setTimeoutAfter(8000)
-                    .setSound(Uri.parse("android.resource://"+context.getPackageName()+"/"+R.raw.ringtone))
-                    .setFullScreenIntent(receiveCallPendingIntent, true)
-                    .setVibrate(new long[]{1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000});
+                    .setTimeoutAfter(30000)
+                    .setSound(soundUri)
+                    .setFullScreenIntent(fullscreenpendingintent, true);
         } else {
+
+//            Intent receiveCallPendingIntent = new Intent(getApplicationCntx(),ActionReceiver.class);
+//            receiveCallPendingIntent.putExtra("action","accepted");
+//            receiveCallPendingIntent.putExtra("doctorID",doctorID);
+//            receiveCallPendingIntent.putExtra("notifyID",NOTIFY_ID);
+//            PendingIntent rcvCallPendingIntent = PendingIntent.getBroadcast(context,1,receiveCallPendingIntent,PendingIntent.FLAG_UPDATE_CURRENT);
 
             builder = new NotificationCompat.Builder(this);
 
-            intent = new Intent(this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+            Intent fullscreenintent = new Intent(Intent.ACTION_MAIN, null);
+            fullscreenintent.putExtra("doctorID",doctorID);
+            fullscreenintent.setFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            fullscreenintent.setClass(context, CallingScreen.class);
+            PendingIntent fullscreenpendingintent = PendingIntent.getActivity(context, 1, fullscreenintent, 0);
 
             builder.setContentTitle(aMessage)                           // required
                     .setSmallIcon(android.R.drawable.ic_popup_reminder) // required
                     .setContentText(this.getString(R.string.app_name))  // required
-                    .setDefaults(Notification.DEFAULT_ALL)
                     .setAutoCancel(true)
-                    .setContentIntent(pendingIntent)
                     .setTicker(aMessage)
-                    .setVibrate(new long[]{1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000})
-                    .setPriority(Notification.PRIORITY_HIGH);
-        } // else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    .setFullScreenIntent(fullscreenpendingintent, true);
+        }
 
         Notification notification = builder.build();
         notifManager.notify(NOTIFY_ID, notification);
